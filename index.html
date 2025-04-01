@@ -4,43 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генерация изображений с Grok</title>
+    <!-- Стили остаются без изменений -->
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f0f0f0;
-            margin: 0;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-        #prompt {
-            width: 100%;
-            max-width: 400px;
-            height: 100px;
-            margin: 20px auto;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-        #generate {
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #generate:hover {
-            background-color: #0056b3;
-        }
-        #canvas {
-            margin-top: 20px;
-            border: 1px solid #ccc;
-            width: 100%;
-            max-width: 400px;
-            height: auto;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #f0f0f0; margin: 0; padding: 10px; }
+        #prompt { width: 100%; max-width: 400px; height: 100px; margin: 20px auto; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        #generate { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #generate:hover { background-color: #0056b3; }
+        #canvas { margin-top: 20px; border: 1px solid #ccc; width: 100%; max-width: 400px; height: auto; }
     </style>
 </head>
 <body>
@@ -52,25 +22,17 @@
     <script>
         document.getElementById('generate').addEventListener('click', async function() {
             const prompt = document.getElementById('prompt').value;
-            if (!prompt) {
-                alert('Пожалуйста, введите описание для генерации.');
-                return;
-            }
+            if (!prompt) return alert('Пожалуйста, введите описание');
 
-            if (!confirm(`Сгенерировать изображение по запросу: "${prompt}"?`)) {
-                return;
-            }
+            if (!confirm(`Сгенерировать: "${prompt}"?`)) return;
 
             try {
-                const apiKey = 'xai-G6eIlPHKSoNNTATdRwtUhFsEfaJDp9g9ljjkqyzQWjFi50FW5rmlZQTwsZhEvxx0CrocYrUVffvzkW8E';
-                const apiUrl = 'https://api.x.ai/v1/images/generations';
-
-                const response = await fetch(apiUrl, {
+                // 1. Запрос к API для генерации изображения
+                const apiResponse = await fetch('https://api.x.ai/v1/images/generations', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Accept': 'application/json'
+                        'Authorization': 'Bearer xai-G6eIlPHKSoNNTATdRwtUhFsEfaJDp9g9ljjkqyzQWjFi50FW5rmlZQTwsZhEvxx0CrocYrUVffvzkW8E',
                     },
                     body: JSON.stringify({
                         prompt: prompt,
@@ -81,39 +43,34 @@
                     })
                 });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Ошибка API: ${response.status} - ${errorText}`);
-                }
-
-                const data = await response.json();
-                console.log('Ответ API:', data);
-
-                // Извлечение URL изображения
-                const imageUrl = data.data?.[0]?.url || data.imageUrl || data.url;
-                if (!imageUrl) {
-                    throw new Error('URL изображения не найден в ответе API');
-                }
-
-                // Отрисовка изображения на canvas
+                if (!apiResponse.ok) throw new Error(`API Error: ${apiResponse.status}`);
+                
+                // 2. Получение URL изображения
+                const { data: [{ url }] } = await apiResponse.json();
+                
+                // 3. Обход CORS через proxy
+                const imgResponse = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+                const blob = await imgResponse.blob();
+                
+                // 4. Отрисовка на canvas
                 const canvas = document.getElementById('canvas');
                 const ctx = canvas.getContext('2d');
                 const img = new Image();
-                img.crossOrigin = 'anonymous';
                 
                 img.onload = () => {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 };
                 
-                img.onerror = () => {
-                    throw new Error('Не удалось загрузить изображение');
+                img.onerror = (e) => {
+                    console.error('Image load error:', e);
+                    alert('Ошибка загрузки изображения');
                 };
                 
-                img.src = imageUrl;
+                img.src = URL.createObjectURL(blob);
 
             } catch (error) {
-                console.error('Ошибка:', error);
+                console.error('Error:', error);
                 alert(`Ошибка: ${error.message}`);
             }
         });
