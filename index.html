@@ -3,20 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Фрейм для заметок</title>
+    <title>Генерация изображений</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             background-color: #f0f0f0;
+            margin: 0;
+            padding: 10px;
+            box-sizing: border-box;
         }
-        #note {
-            width: 80%;
+        #prompt {
+            width: 100%;
+            max-width: 400px;
             height: 100px;
             margin: 20px auto;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
+            box-sizing: border-box;
         }
         #generate {
             padding: 10px 20px;
@@ -32,32 +37,50 @@
         #canvas {
             margin-top: 20px;
             border: 1px solid #ccc;
+            width: 100%;
+            max-width: 400px;
+            height: auto;
         }
     </style>
 </head>
 <body>
-    <h2>Создать заметку</h2>
-    <textarea id="note" placeholder="Введите текст заметки"></textarea><br>
+    <h2>Генерация изображений</h2>
+    <textarea id="prompt" placeholder="Введите описание изображения, например: 'Кот в костюме человека-паука в аниме-стиле'"></textarea><br>
     <button id="generate">Сгенерировать изображение</button><br>
-    <canvas id="canvas" width="400" height="200"></canvas>
+    <canvas id="canvas" width="400" height="400"></canvas>
 
     <script>
         document.getElementById('generate').addEventListener('click', function() {
-            const text = document.getElementById('note').value;
-            if (!text) {
-                alert('Пожалуйста, введите текст заметки.');
+            const prompt = document.getElementById('prompt').value;
+            if (!prompt) {
+                alert('Пожалуйста, введите описание для генерации изображения.');
                 return;
             }
+
+            // Запрашиваем подтверждение у пользователя
+            const confirmGeneration = confirm(`Вы хотите сгенерировать изображение по запросу: "${prompt}"?`);
+            if (!confirmGeneration) {
+                alert('Генерация отменена.');
+                return;
+            }
+
+            // Здесь должен быть запрос к API для генерации изображения
+            // Но так как я не могу напрямую взаимодействовать с API, я опишу, как это сделать
+            // Предположим, что API возвращает URL сгенерированного изображения
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
             const img = new Image();
-            img.src = 'backg.jpg'; // Замените на имя вашего изображения
+
+            // Для примера я использую заглушку (placeholder), но в реальной ситуации это будет URL от API
+            // Например, после запроса к API ты получишь URL вроде "https://api.xai.com/generated-image.jpg"
+            img.src = 'https://via.placeholder.com/400x400.png?text=Сгенерированное+изображение'; // Замени на URL от API
+
             img.onload = function() {
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                ctx.font = '20px Arial';
-                ctx.fillStyle = 'white';
-                ctx.textAlign = 'center';
-                ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Очищаем канвас
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // Отображаем изображение
+            };
+            img.onerror = function() {
+                alert('Не удалось загрузить изображение. Проверьте URL или API.');
             };
         });
     </script>
