@@ -41,12 +41,27 @@
             max-width: 400px;
             height: auto;
         }
+        .loader {
+            display: none;
+            margin: 20px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <h2>Генерация изображений с Grok</h2>
     <textarea id="prompt" placeholder="Введите описание, например: 'Кот в аниме-стиле'"></textarea><br>
     <button id="generate">Сгенерировать изображение</button><br>
+    <div class="loader" id="loader"></div>
     <canvas id="canvas" width="400" height="400"></canvas>
 
     <script>
@@ -57,20 +72,17 @@
                 return;
             }
 
-            if (!confirm(`Сгенерировать изображение по запросу: "${prompt}"?`)) {
-                return;
-            }
-
             try {
-                const apiKey = 'xai-G6eIlPHKSoNNTATdRwtUhFsEfaJDp9g9ljjkqyzQWjFi50FW5rmlZQTwsZhEvxx0CrocYrUVffvzkW8E';
-                const apiUrl = 'https://api.x.ai/v1/images/generations';
-
-                const response = await fetch(apiUrl, {
+                // Показать лоадер
+                const loader = document.getElementById('loader');
+                loader.style.display = 'block';
+                
+                // 1. Генерация изображения через API
+                const apiResponse = await fetch('https://api.x.ai/v1/images/generations', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Accept': 'application/json'
+                        'Authorization': 'Bearer xai-G6eIlPHKSoNNTATdRwtUhFsEfaJDp9g9ljjkqyzQWjFi50FW5rmlZQTwsZhEvxx0CrocYrUVffvzkW8E',
                     },
                     body: JSON.stringify({
                         prompt: prompt,
@@ -81,40 +93,46 @@
                     })
                 });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Ошибка API: ${response.status} - ${errorText}`);
+                if (!apiResponse.ok) {
+                    throw new Error(`Ошибка API: ${apiResponse.status}`);
                 }
 
-                const data = await response.json();
-                console.log('Ответ API:', data);
+                const apiData = await apiResponse.json();
+                const imageUrl = apiData.data[0].url;
 
-                // Извлечение URL изображения
-                const imageUrl = data.data?.[0]?.url || data.imageUrl || data.url;
-                if (!imageUrl) {
-                    throw new Error('URL изображения не найден в ответе API');
+                // 2. Загрузка изображения через прокси с обработкой CORS
+                const proxyUrl = `https://cors-anywhere.herokuapp.com/${imageUrl}`;
+                const imgResponse = await fetch(proxyUrl);
+                
+                if (!imgResponse.ok) {
+                    throw new Error('Ошибка загрузки изображения');
                 }
 
-                // Отрисовка изображения на canvas
+                const blob = await imgResponse.blob();
+                const urlObject = URL.createObjectURL(blob);
+
+                // 3. Отрисовка на Canvas
                 const canvas = document.getElementById('canvas');
                 const ctx = canvas.getContext('2d');
                 const img = new Image();
-                img.crossOrigin = 'anonymous'; // Для обхода CORS если нужно
                 
                 img.onload = () => {
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    URL.revokeObjectURL(urlObject);
+                    loader.style.display = 'none';
                 };
                 
                 img.onerror = () => {
-                    throw new Error('Не удалось загрузить изображение');
+                    throw new Error('Ошибка загрузки изображения');
                 };
                 
-                img.src = imageUrl;
+                img.src = urlObject;
 
             } catch (error) {
                 console.error('Ошибка:', error);
-                alert(`Ошибка: ${error.message}`);
+                alert(error.message);
+                loader.style.display = 'none';
             }
         });
     </script>
