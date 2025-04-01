@@ -57,52 +57,62 @@
                 return;
             }
 
-            const confirmGeneration = confirm(`Сгенерировать изображение по запросу: "${prompt}"?`);
-            if (!confirmGeneration) {
-                alert('Генерация отменена.');
+            if (!confirm(`Сгенерировать изображение по запросу: "${prompt}"?`)) {
                 return;
             }
 
             try {
-                // Вставь свой API-ключ от Grok сюда
-                const apiKey = 'xai-G6eIlPHKSoNNTATdRwtUhFsEfaJDp9g9ljjkqyzQWjFi50FW5rmlZQTwsZhEvxx0CrocYrUVffvzkW8E';
-                // Замени на реальный URL API Grok (проверь в документации)
-                const apiUrl = 'https://api.grok.xai.com/v1/images/generations';
+                const apiKey = 'xai-G6eIlPHKSoNNTATdRwtUhFsEfaJDp9g9ljjkqyzQWjFi50FW5rmlZQTwsZhEvxx0CrocYrUVffvzkW8E'; // Замените на реальный ключ
+                const apiUrl = 'https://api.grok.xai.com/v1/images/generations'; // Проверьте URL в документации
 
-                // Отправляем запрос к API Grok
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}` // Передаём API-ключ в заголовке
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Accept': 'application/json' // Добавляем заголовок Accept
                     },
                     body: JSON.stringify({
-                        prompt: prompt, // Твой текстовый запрос
+                        prompt: prompt,
                         width: 400,
-                        height: 400
+                        height: 400,
+                        n: 1 // Некоторые API требуют количество изображений
                     })
                 });
 
-                const data = await response.json();
-                if (!data.imageUrl) {
-                    throw new Error('Не удалось получить URL изображения от API.');
+                // Проверяем статус ответа
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${errorData.error?.message || response.statusText}`);
                 }
 
-                // Отображаем изображение в канвасе
-                const canvas = document.getElementById('canvas');
-                const ctx = canvas.getContext('2d');
-                const img = new Image();
-                img.src = data.imageUrl; // URL изображения от API
+                const data = await response.json();
+                
+                // Проверяем структуру ответа (может отличаться в реальном API)
+                const imageUrl = data.data?.[0]?.url || data.imageUrl;
+                if (!imageUrl) {
+                    throw new Error('Некорректный формат ответа API');
+                }
 
-                img.onload = function() {
+                // Загрузка изображения с обработкой CORS
+                const img = new Image();
+                img.crossOrigin = 'anonymous'; // Решаем проблемы с CORS для canvas
+                img.src = imageUrl + '?nocache=' + Date.now(); // Обходим кеш
+
+                img.onload = () => {
+                    const canvas = document.getElementById('canvas');
+                    const ctx = canvas.getContext('2d');
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 };
-                img.onerror = function() {
-                    alert('Не удалось загрузить изображение. Проверь URL или API.');
+
+                img.onerror = () => {
+                    throw new Error('Ошибка загрузки изображения');
                 };
+
             } catch (error) {
-                alert('Ошибка: ' + error.message);
+                console.error('Full error:', error);
+                alert(`Error: ${error.message}`);
             }
         });
     </script>
