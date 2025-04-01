@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Фрейм для заметок</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        #note {
+            width: 80%;
+            height: 100px;
+            margin: 20px auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #generate {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #generate:hover {
+            background-color: #0056b3;
+        }
+        #canvas {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h2>Создать заметку</h2>
+    <textarea id="note" placeholder="Введите текст заметки"></textarea><br>
+    <button id="generate">Сгенерировать изображение</button><br>
+    <canvas id="canvas" width="400" height="200"></canvas>
+
+    <script>
+        document.getElementById('generate').addEventListener('click', function() {
+            const text = document.getElementById('note').value;
+            if (!text) {
+                alert('Пожалуйста, введите текст заметки.');
+                return;
+            }
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.src = 'backg.jpg'; // Замените на имя вашего изображения
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                ctx.font = '20px Arial';
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+            };
+        });
+    </script>
+</body>
+</html>
