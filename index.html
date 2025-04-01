@@ -62,17 +62,8 @@
             }
 
             try {
-                const apiKey = 'xai-G6eIlPHKSoNNTATdRwtUhFsEfaJDp9g9ljjkqyzQWjFi50FW5rmlZQTwsZhEvxx0CrocYrUVffvzkW8E'; // Замените на ваш реальный ключ
-                const apiUrl = 'https://api.x.ai/v1/images/generations'; // Обновленный URL
-
-                console.log('Отправка запроса на:', apiUrl);
-                console.log('С телом запроса:', {
-                    prompt: prompt,
-                    model: 'grok-2-image-1212',
-                    width: 400,
-                    height: 400,
-                    n: 1
-                });
+                const apiKey = 'xai-G6eIlPHKSoNNTATdRwtUhFsEfaJDp9g9ljjkqyzQWjFi50FW5rmlZQTwsZhEvxx0CrocYrUVffvzkW8E';
+                const apiUrl = 'https://api.x.ai/v1/images/generations';
 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -90,50 +81,39 @@
                     })
                 });
 
-                console.log('Статус ответа:', response.status);
-                console.log('Заголовки ответа:', response.headers);
-
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.log('Текст ошибки от сервера:', errorText);
                     throw new Error(`Ошибка API: ${response.status} - ${errorText}`);
                 }
 
                 const data = await response.json();
                 console.log('Ответ API:', data);
 
-                // Извлекаем URL изображения
-                let imageUrl;
-                if (data.data && Array.isArray(data.data) && data.data[0].url) {
-                    imageUrl = data.data[0].url;
-                } else if (data.imageUrl) {
-                    imageUrl = data.imageUrl;
-                } else if (data.url) {
-                    imageUrl = data.url;
-                } else {
+                // Извлечение URL изображения
+                const imageUrl = data.data?.[0]?.url || data.imageUrl || data.url;
+                if (!imageUrl) {
                     throw new Error('URL изображения не найден в ответе API');
                 }
 
-                console.log('URL изображения:', imageUrl);
-
-                // Создаем элемент <img> вместо canvas для отображения
-                const img = new Image();
-                img.src = imageUrl;
-                img.style.maxWidth = '400px';
-                img.style.height = 'auto';
-                img.style.marginTop = '20px';
-                img.style.border = '1px solid #ccc';
-
-                // Удаляем старый canvas и добавляем изображение
+                // Отрисовка изображения на canvas
                 const canvas = document.getElementById('canvas');
-                canvas.parentNode.replaceChild(img, canvas);
-
-                img.onerror = () => {
-                    throw new Error('Не удалось загрузить изображение по URL: ' + imageUrl);
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.crossOrigin = 'anonymous'; // Для обхода CORS если нужно
+                
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 };
+                
+                img.onerror = () => {
+                    throw new Error('Не удалось загрузить изображение');
+                };
+                
+                img.src = imageUrl;
 
             } catch (error) {
-                console.error('Полная ошибка:', error);
+                console.error('Ошибка:', error);
                 alert(`Ошибка: ${error.message}`);
             }
         });
