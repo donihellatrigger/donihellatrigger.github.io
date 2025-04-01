@@ -68,7 +68,7 @@
                 console.log('Отправка запроса на:', apiUrl);
                 console.log('С телом запроса:', {
                     prompt: prompt,
-                    model: 'grok-2-image-1212', // Добавлен параметр model
+                    model: 'grok-2-image-1212',
                     width: 400,
                     height: 400,
                     n: 1
@@ -83,7 +83,7 @@
                     },
                     body: JSON.stringify({
                         prompt: prompt,
-                        model: 'grok-2-image-1212', // Укажите правильное имя модели из документации
+                        model: 'grok-2-image-1212',
                         width: 400,
                         height: 400,
                         n: 1
@@ -102,6 +102,7 @@
                 const data = await response.json();
                 console.log('Ответ API:', data);
 
+                // Извлекаем URL изображения
                 let imageUrl;
                 if (data.data && Array.isArray(data.data) && data.data[0].url) {
                     imageUrl = data.data[0].url;
@@ -113,20 +114,22 @@
                     throw new Error('URL изображения не найден в ответе API');
                 }
 
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.src = imageUrl + '?nocache=' + Date.now();
+                console.log('URL изображения:', imageUrl);
 
-                img.onload = () => {
-                    const canvas = document.getElementById('canvas');
-                    const ctx = canvas.getContext('2d');
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    console.log('Изображение успешно отрисовано на канвасе');
-                };
+                // Создаем элемент <img> вместо canvas для отображения
+                const img = new Image();
+                img.src = imageUrl;
+                img.style.maxWidth = '400px';
+                img.style.height = 'auto';
+                img.style.marginTop = '20px';
+                img.style.border = '1px solid #ccc';
+
+                // Удаляем старый canvas и добавляем изображение
+                const canvas = document.getElementById('canvas');
+                canvas.parentNode.replaceChild(img, canvas);
 
                 img.onerror = () => {
-                    throw new Error('Ошибка загрузки изображения');
+                    throw new Error('Не удалось загрузить изображение по URL: ' + imageUrl);
                 };
 
             } catch (error) {
