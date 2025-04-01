@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генерация изображений</title>
+    <title>Генерация изображений с Grok</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -44,44 +44,66 @@
     </style>
 </head>
 <body>
-    <h2>Генерация изображений</h2>
-    <textarea id="prompt" placeholder="Введите описание изображения, например: 'Кот в костюме человека-паука в аниме-стиле'"></textarea><br>
+    <h2>Генерация изображений с Grok</h2>
+    <textarea id="prompt" placeholder="Введите описание, например: 'Кот в аниме-стиле'"></textarea><br>
     <button id="generate">Сгенерировать изображение</button><br>
     <canvas id="canvas" width="400" height="400"></canvas>
 
     <script>
-        document.getElementById('generate').addEventListener('click', function() {
+        document.getElementById('generate').addEventListener('click', async function() {
             const prompt = document.getElementById('prompt').value;
             if (!prompt) {
-                alert('Пожалуйста, введите описание для генерации изображения.');
+                alert('Пожалуйста, введите описание для генерации.');
                 return;
             }
 
-            // Запрашиваем подтверждение у пользователя
-            const confirmGeneration = confirm(`Вы хотите сгенерировать изображение по запросу: "${prompt}"?`);
+            const confirmGeneration = confirm(`Сгенерировать изображение по запросу: "${prompt}"?`);
             if (!confirmGeneration) {
                 alert('Генерация отменена.');
                 return;
             }
 
-            // Здесь должен быть запрос к API для генерации изображения
-            // Но так как я не могу напрямую взаимодействовать с API, я опишу, как это сделать
-            // Предположим, что API возвращает URL сгенерированного изображения
-            const canvas = document.getElementById('canvas');
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
+            try {
+                // Вставь свой API-ключ от Grok сюда
+                const apiKey = 'xai-G6eIlPHKSoNNTATdRwtUhFsEfaJDp9g9ljjkqyzQWjFi50FW5rmlZQTwsZhEvxx0CrocYrUVffvzkW8E';
+                // Замени на реальный URL API Grok (проверь в документации)
+                const apiUrl = 'https://api.x.ai/v1/chat/completions';
 
-            // Для примера я использую заглушку (placeholder), но в реальной ситуации это будет URL от API
-            // Например, после запроса к API ты получишь URL вроде "https://api.xai.com/generated-image.jpg"
-            img.src = 'https://via.placeholder.com/400x400.png?text=Сгенерированное+изображение'; // Замени на URL от API
+                // Отправляем запрос к API Grok
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}` // Передаём API-ключ в заголовке
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt, // Твой текстовый запрос
+                        width: 400,
+                        height: 400
+                    })
+                });
 
-            img.onload = function() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height); // Очищаем канвас
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // Отображаем изображение
-            };
-            img.onerror = function() {
-                alert('Не удалось загрузить изображение. Проверьте URL или API.');
-            };
+                const data = await response.json();
+                if (!data.imageUrl) {
+                    throw new Error('Не удалось получить URL изображения от API.');
+                }
+
+                // Отображаем изображение в канвасе
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.src = data.imageUrl; // URL изображения от API
+
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                };
+                img.onerror = function() {
+                    alert('Не удалось загрузить изображение. Проверь URL или API.');
+                };
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            }
         });
     </script>
 </body>
