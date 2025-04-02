@@ -1,51 +1,53 @@
-document.getElementById('generate').addEventListener('click', async function() {
-  const prompt = document.getElementById('prompt').value;
-  if (!prompt) {
-    alert('Пожалуйста, введите описание для генерации.');
-    return;
-  }
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Генерация изображений</title>
+    <style>
+        body { text-align: center; }
+        #prompt { width: 300px; height: 80px; margin: 10px; }
+        #generate { padding: 10px; background: blue; color: white; }
+        #canvas { border: 1px solid black; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h2>Генерация изображений</h2>
+    <textarea id="prompt" placeholder="Напиши, что хочешь видеть"></textarea><br>
+    <button id="generate">Сгенерировать</button><br>
+    <canvas id="canvas" width="400" height="400"></canvas>
 
-  if (!confirm(`Сгенерировать изображение по запросу: "${prompt}"?`)) {
-    return;
-  }
+    <script>
+        document.getElementById('generate').addEventListener('click', async () => {
+            const prompt = document.getElementById('prompt').value;
+            if (!prompt) {
+                alert('Напиши что-нибудь!');
+                return;
+            }
 
-  try {
-    // Запрос к серверной функции
-    const response = await fetch('/api/generate-image', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ prompt: prompt }),
-    });
+            try {
+                const response = await fetch('/api/generate-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Ошибка сервера: ${response.status} - ${errorText}`);
-    }
+                if (!response.ok) {
+                    throw new Error('Сервер не отвечает');
+                }
 
-    // Получаем изображение как Blob и создаём URL
-    const blob = await response.blob();
-    const imageUrl = URL.createObjectURL(blob);
-
-    // Отображаем изображение на canvas
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.src = imageUrl;
-
-    img.onload = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(imageUrl); // Очищаем URL после загрузки
-    };
-
-    img.onerror = () => {
-      console.error('Не удалось загрузить изображение');
-      alert('Ошибка при загрузке изображения');
-    };
-  } catch (error) {
-    console.error('Ошибка:', error);
-    alert(`Ошибка: ${error.message}`);
-  }
-});
+                const blob = await response.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.src = imageUrl;
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                };
+            } catch (error) {
+                alert('Что-то пошло не так: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
