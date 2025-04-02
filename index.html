@@ -1,86 +1,51 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генератор изображений</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: #f0f0f0; margin: 20px; }
-        #prompt { width: 90%; max-width: 500px; height: 100px; padding: 10px; margin: 10px; }
-        #generate { padding: 12px 25px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        #generate:hover { background: #0056b3; }
-        #result { margin: 20px auto; max-width: 512px; }
-        .loader { display: none; margin: 20px; }
-    </style>
-</head>
-<body>
-    <h1>Генератор изображений Grok</h1>
-    <textarea id="prompt" placeholder="Опишите изображение..."></textarea><br>
-    <button id="generate">Сгенерировать</button>
-    <div class="loader" id="loader">Загрузка...</div>
-    <div id="result"></div>
+document.getElementById('generate').addEventListener('click', async function() {
+  const prompt = document.getElementById('prompt').value;
+  if (!prompt) {
+    alert('Пожалуйста, введите описание для генерации.');
+    return;
+  }
 
-    <script>
-        const CORS_PROXY = 'https://cors.chipper-cat-f2b5.workers.dev/';
-        
-        async function fetchWithRetry(url, options, retries = 3) {
-            try {
-                const response = await fetch(url, options);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                return response;
-            } catch (err) {
-                if (retries > 0) return fetchWithRetry(url, options, retries - 1);
-                throw err;
-            }
-        }
+  if (!confirm(`Сгенерировать изображение по запросу: "${prompt}"?`)) {
+    return;
+  }
 
-        document.getElementById('generate').addEventListener('click', async () => {
-            const prompt = document.getElementById('prompt').value.trim();
-            if (!prompt) return alert('Введите описание');
-            
-            try {
-                document.getElementById('loader').style.display = 'block';
-                document.getElementById('result').innerHTML = '';
+  try {
+    // Запрос к серверной функции
+    const response = await fetch('/api/generate-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt: prompt }),
+    });
 
-                // Шаг 1: Генерация изображения через API
-                const apiResponse = await fetchWithRetry('https://api.x.ai/v1/images/generations', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer xai-G6eIlPHKSoNNTATdRwtUhFsEfaJDp9g9ljjkqyzQWjFi50FW5rmlZQTwsZhEvxx0CrocYrUVffvzkW8E',
-                    },
-                    body: JSON.stringify({
-                        prompt: prompt,
-                        model: 'grok-2-image-1212',
-                        width: 512,
-                        height: 512,
-                        n: 1
-                    })
-                });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Ошибка сервера: ${response.status} - ${errorText}`);
+    }
 
-                const { data: [imageData] } = await apiResponse.json();
-                
-                // Шаг 2: Загрузка изображения через надежный CORS proxy
-                const imgProxyUrl = `${CORS_PROXY}${imageData.url}`;
-                const imgResponse = await fetchWithRetry(imgProxyUrl);
-                const blob = await imgResponse.blob();
-                
-                // Шаг 3: Создание объекта URL и отображение
-                const imgUrl = URL.createObjectURL(blob);
-                const img = document.createElement('img');
-                img.src = imgUrl;
-                img.style.maxWidth = '100%';
-                img.onload = () => URL.revokeObjectURL(imgUrl);
-                
-                document.getElementById('result').appendChild(img);
-                
-            } catch (error) {
-                console.error('Error:', error);
-                alert(`Ошибка: ${error.message}`);
-            } finally {
-                document.getElementById('loader').style.display = 'none';
-            }
-        });
-    </script>
-</body>
-</html>
+    // Получаем изображение как Blob и создаём URL
+    const blob = await response.blob();
+    const imageUrl = URL.createObjectURL(blob);
+
+    // Отображаем изображение на canvas
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.src = imageUrl;
+
+    img.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(imageUrl); // Очищаем URL после загрузки
+    };
+
+    img.onerror = () => {
+      console.error('Не удалось загрузить изображение');
+      alert('Ошибка при загрузке изображения');
+    };
+  } catch (error) {
+    console.error('Ошибка:', error);
+    alert(`Ошибка: ${error.message}`);
+  }
+});
